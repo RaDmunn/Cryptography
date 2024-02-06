@@ -1,0 +1,256 @@
+<!-- findKey.ejs -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Знайти ключ</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    nav {
+      margin-top: 20px;
+    }
+
+    ul {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+
+    li {
+      margin-right: 20px;
+    }
+
+    a {
+      text-decoration: none;
+      color: #555;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    a:hover {
+      color: #4caf50;
+    }
+
+    form {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      width: 400px;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #555;
+    }
+
+    textarea {
+      width: calc(100% - 16px);
+      padding: 8px;
+      margin-bottom: 16px;
+      box-sizing: border-box;
+      text-decoration: none;
+    }
+
+    button {
+      background-color: #4caf50;
+      color: #fff;
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    p {
+      margin-top: 10px;
+    }
+
+    #likelihoodChart {
+      max-width: 400px; 
+      width: 100%; 
+      max-height: 400px;
+      height: 300px; /* Фиксированная высота графика */
+    }
+
+    /* Добавлено */
+    #decryptionResult {
+      min-height: 200px; /* Минимальная высота блока с результатами */
+      margin-top: 20px;
+      font-size: 18px;
+      color: #333;
+    }  
+  </style>
+</head>
+<body>
+  <h1>Знайти ключ</h1>
+
+  <nav>
+    <ul>
+      <li><a href="/">Головна</a></li>
+      <li><a href="/findKey">Знайти ключ</a></li>
+    </ul>
+  </nav>
+  
+  <div style="display: flex; justify-content: center; align-items: center; margin-top: 20px;">
+    <form id="findKeyForm" action="/findKey" method="post" style="margin-right: 10px;">
+      <label for="encryptedText">Шифрований текст:</label>
+      <textarea id="encryptedText" name="text" rows="5" required style="height: 120px;"></textarea>
+      <button type="submit">Знайти ключ</button>
+    </form>
+  
+    <form style="margin-left: 10px;">  
+      <!-- Добавляем элемент canvas для отображения графика -->
+      <canvas id="likelihoodChart" width="400" height="250"></canvas>
+    </form>
+  </div>
+
+  <div id="decryptionResult">
+  <form>
+    <p id="foundKey"></p>  
+    <h3>Розшифрований текст:</h3>
+    <p id="decryptedText"></p>
+  </form>
+
+
+
+  <!-- Добавляем ссылку на библиотеку Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const ukrainianAlphabet = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ";
+    //const ukrainianAlphabet = "абвгґдеєжзиіїйклмнопрстуфхцчшщьюя";
+
+    function calculateLogLikelihood(text, frequencies) {
+      let likelihood = 0;
+
+      for (const char of text) {
+        const index = ukrainianAlphabet.indexOf(char);
+        if (index !== -1) {
+          likelihood += Math.log(frequencies[index]);
+        }
+      }
+
+      return likelihood;
+    }
+
+    function decryptCiphertext(ciphertext, key) {
+      let decryptedText = "";
+
+      for (const char of ciphertext) {
+        const index = ukrainianAlphabet.indexOf(char);
+        if (index !== -1) {
+          const decryptedIndex = (index - key + ukrainianAlphabet.length) % ukrainianAlphabet.length;
+          decryptedText += ukrainianAlphabet[decryptedIndex];
+        } else {
+          decryptedText += char;
+        }
+      }
+
+      return decryptedText;
+    }
+
+    const ctx = document.getElementById("likelihoodChart").getContext("2d");
+    const chartData = {
+      labels: [],
+      datasets: [{
+        label: 'Логарифмічна функція правдоподібності',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 1,
+        data: [],
+      }]
+    };
+
+    const likelihoodChart = new Chart(ctx, {
+      type: 'line',
+      data: chartData,
+    });
+
+    function formatDecryptedText(decryptedText) {
+    // Разбиваем текст на предложения
+    const sentences = decryptedText.split('.');
+
+    // Форматируем каждое предложение: первая буква заглавная, остальные строчные
+    const formattedSentences = sentences.map(sentence => {
+      const trimmedSentence = sentence.trim();
+      if (trimmedSentence.length > 0) {
+        return trimmedSentence.charAt(0).toUpperCase() + trimmedSentence.slice(1).toLowerCase();
+      } else {
+        return '';
+      }
+    });
+
+    // Склеиваем предложения и возвращаем отформатированный текст
+    return formattedSentences.join('. ');
+    }
+
+    document.getElementById("findKeyForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const encryptedText = document.getElementById("encryptedText").value.toUpperCase();
+      const frequencies = [
+        0.0834, 0.0153, 0.055, 0.0159, 0.0001, 0.036, 0.0459, 0.0039, 0.0071, 0.021,
+        0.06, 0.0124, 0.0623, 0.0084, 0.04, 0.0393, 0.0302, 0.071, 0.0928, 0.0284,
+        0.0548, 0.0457, 0.0477, 0.0338, 0.0035, 0.0117, 0.0102, 0.0115, 0.0071, 0.0032,
+        0.0183, 0.007, 0.0261
+      ];
+
+      let maxLikelihood = -Infinity;
+      let bestKey = 0;
+
+      chartData.labels = [];
+      chartData.datasets[0].data = [];
+
+      for (let key = 1; key < ukrainianAlphabet.length; key++) {
+        const decryptedText = decryptCiphertext(encryptedText, key);
+        const likelihood = calculateLogLikelihood(decryptedText, frequencies);
+
+        chartData.labels.push(`Key ${key}`);
+        chartData.datasets[0].data.push(likelihood);
+
+        if (likelihood > maxLikelihood) {
+          maxLikelihood = likelihood;
+          bestKey = key;
+        }
+      }
+
+      likelihoodChart.update();
+
+      const decryptedText = decryptCiphertext(encryptedText, bestKey);
+      const formattedDecryptedText = formatDecryptedText(decryptedText);
+      document.getElementById("decryptedText").textContent = formattedDecryptedText;
+      document.getElementById("foundKey").textContent = `Знайдений ключ: ${bestKey}`;
+    });
+  });
+</script>
+
+</div>
+</body>
+</html>

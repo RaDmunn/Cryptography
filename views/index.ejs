@@ -1,0 +1,183 @@
+<!-- index.ejs -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Шифр Цезаря</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    nav {
+      margin-top: 20px;
+    }
+
+    ul {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+
+    li {
+      margin-right: 20px;
+    }
+
+    a {
+      text-decoration: none;
+      color: #555;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    a:hover {
+      color: #4caf50;
+    }
+
+    form {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      width: 400px;
+      text-align: center; /* Закрепляем по центру */
+      margin-top: 20px; /* Добавляем отступ после навигационного меню */
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #555;
+    }
+
+    input,
+    select,
+    textarea {
+      width: calc(100% - 16px);
+      padding: 8px;
+      margin-bottom: 16px;
+      box-sizing: border-box;
+      text-decoration: none; /* Убираем подчеркивание */
+    }
+
+    button {
+      background-color: #4caf50;
+      color: #fff;
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    #cipherResult {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Шифр Цезаря</h1>
+
+  <nav>
+    <ul>
+      <li><a href="/">Головна</a></li>
+      <li><a href="/findKey">Знайти ключ</a></li>
+    </ul>
+  </nav>
+  
+  <form id="cipherForm" action="/encrypt" method="post">
+    <label for="inputText">Текст:</label>
+    <textarea id="inputText" name="text" rows="5" required style="height: 120px;"></textarea>
+
+    <label for="encryptionKey">Ключ:</label>
+    <input type="number" id="encryptionKey" name="key" required>
+
+    <label for="language">Мова:</label>
+    <select id="language" name="language">
+      <option value="ukrainian">Українська</option>
+      <option value="english">Англійська</option>
+    </select>
+
+    <button type="submit">Зашифрувати</button>
+    <button type="button" id="decryptButton">Розшифрувати</button>
+  </form>
+
+  <div>
+    <h2>Результат:</h2>
+    <p id="cipherResult"></p>
+  </div>
+
+  <script>
+    document.getElementById('cipherForm').addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      const text = document.getElementById('inputText').value;
+      const key = parseInt(document.getElementById('encryptionKey').value, 10);
+      const language = document.getElementById('language').value;
+
+      fetch(this.action, {
+        method: this.method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          key: key,
+          language: language
+        }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('cipherResult').textContent = data.result;
+      })
+      .catch(error => console.error('Error:', error));
+    });
+
+    document.getElementById('decryptButton').addEventListener('click', function () {
+      const text = document.getElementById('inputText').value;
+      const key = parseInt(document.getElementById('encryptionKey').value, 10);
+      const language = document.getElementById('language').value;
+
+      fetch('/decrypt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          key: key,
+          language: language
+        }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('cipherResult').textContent = data.result;
+      })
+      .catch(error => console.error('Error:', error));
+    });
+  </script>
+
+</body>
+</html>
