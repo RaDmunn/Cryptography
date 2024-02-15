@@ -95,12 +95,12 @@
       max-width: 400px; 
       width: 100%; 
       max-height: 400px;
-      height: 300px; /* Фиксированная высота графика */
+      height: 300px;
     }
 
     /* Добавлено */
     #decryptionResult {
-      min-height: 200px; /* Минимальная высота блока с результатами */
+      min-height: 200px; 
       margin-top: 20px;
       font-size: 18px;
       color: #333;
@@ -125,7 +125,6 @@
     </form>
   
     <form style="margin-left: 10px;">  
-      <!-- Добавляем элемент canvas для отображения графика -->
       <canvas id="likelihoodChart" width="400" height="250"></canvas>
     </form>
   </div>
@@ -137,119 +136,132 @@
     <p id="decryptedText"></p>
   </form>
 
-
-
-  <!-- Добавляем ссылку на библиотеку Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const ukrainianAlphabet = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ";
-    //const ukrainianAlphabet = "абвгґдеєжзиіїйклмнопрстуфхцчшщьюя";
-
-    function calculateLogLikelihood(text, frequencies) {
-      let likelihood = 0;
-
-      for (const char of text) {
-        const index = ukrainianAlphabet.indexOf(char);
-        if (index !== -1) {
-          likelihood += Math.log(frequencies[index]);
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // Визначення українського алфавіту
+      const ukrainianAlphabet = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ";
+  
+      // Функція для обчислення логарифмічної функції правдоподібності
+      function calculateLogLikelihood(text, frequencies) {
+        let likelihood = 0;
+  
+        for (const char of text) {
+          const index = ukrainianAlphabet.indexOf(char);
+          if (index !== -1) {
+            likelihood += Math.log(frequencies[index]);
+          }
         }
+  
+        return likelihood;
       }
-
-      return likelihood;
-    }
-
-    function decryptCiphertext(ciphertext, key) {
-      let decryptedText = "";
-
-      for (const char of ciphertext) {
-        const index = ukrainianAlphabet.indexOf(char);
-        if (index !== -1) {
-          const decryptedIndex = (index - key + ukrainianAlphabet.length) % ukrainianAlphabet.length;
-          decryptedText += ukrainianAlphabet[decryptedIndex];
-        } else {
-          decryptedText += char;
+  
+      // Функція для розшифрування шифротексту
+      function decryptCiphertext(ciphertext, key) {
+        let decryptedText = "";
+  
+        for (const char of ciphertext) {
+          const index = ukrainianAlphabet.indexOf(char);
+          if (index !== -1) {
+            const decryptedIndex = (index - key + ukrainianAlphabet.length) % ukrainianAlphabet.length;
+            decryptedText += ukrainianAlphabet[decryptedIndex];
+          } else {
+            decryptedText += char;
+          }
         }
+  
+        return decryptedText;
       }
-
-      return decryptedText;
-    }
-
-    const ctx = document.getElementById("likelihoodChart").getContext("2d");
-    const chartData = {
-      labels: [],
-      datasets: [{
-        label: 'Логарифмічна функція правдоподібності',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        borderColor: 'rgba(75, 192, 192, 1)',
-        borderWidth: 1,
-        data: [],
-      }]
-    };
-
-    const likelihoodChart = new Chart(ctx, {
-      type: 'line',
-      data: chartData,
-    });
-
-    function formatDecryptedText(decryptedText) {
-    // Разбиваем текст на предложения
-    const sentences = decryptedText.split('.');
-
-    // Форматируем каждое предложение: первая буква заглавная, остальные строчные
-    const formattedSentences = sentences.map(sentence => {
-      const trimmedSentence = sentence.trim();
-      if (trimmedSentence.length > 0) {
-        return trimmedSentence.charAt(0).toUpperCase() + trimmedSentence.slice(1).toLowerCase();
-      } else {
-        return '';
+  
+      // Конфігурація для графіку логарифмічної функції правдоподібності
+      const ctx = document.getElementById("likelihoodChart").getContext("2d");
+      const chartData = {
+        labels: [],
+        datasets: [{
+          label: 'Логарифмічна функція правдоподібності',
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          borderColor: 'rgba(75, 192, 192, 1)',
+          borderWidth: 1,
+          data: [],
+        }]
+      };
+  
+      const likelihoodChart = new Chart(ctx, {
+        type: 'line',
+        data: chartData,
+      });
+  
+      // Функція для форматування розшифрованого тексту
+      function formatDecryptedText(decryptedText) {
+        // Розбиваємо текст на речення
+        const sentences = decryptedText.split('.');
+  
+        // Форматуємо кожне речення: перша літера велика, решта маленькі
+        const formattedSentences = sentences.map(sentence => {
+          const trimmedSentence = sentence.trim();
+          if (trimmedSentence.length > 0) {
+            return trimmedSentence.charAt(0).toUpperCase() + trimmedSentence.slice(1).toLowerCase();
+          } else {
+            return '';
+          }
+        });
+  
+        // Склеюємо речення і повертаємо відформатований текст
+        return formattedSentences.join('. ');
       }
-    });
-
-    // Склеиваем предложения и возвращаем отформатированный текст
-    return formattedSentences.join('. ');
-    }
-
-    document.getElementById("findKeyForm").addEventListener("submit", function (event) {
-      event.preventDefault();
-
-      const encryptedText = document.getElementById("encryptedText").value.toUpperCase();
-      const frequencies = [
-        0.0834, 0.0153, 0.055, 0.0159, 0.0001, 0.036, 0.0459, 0.0039, 0.0071, 0.021,
-        0.06, 0.0124, 0.0623, 0.0084, 0.04, 0.0393, 0.0302, 0.071, 0.0928, 0.0284,
-        0.0548, 0.0457, 0.0477, 0.0338, 0.0035, 0.0117, 0.0102, 0.0115, 0.0071, 0.0032,
-        0.0183, 0.007, 0.0261
-      ];
-
-      let maxLikelihood = -Infinity;
-      let bestKey = 0;
-
-      chartData.labels = [];
-      chartData.datasets[0].data = [];
-
-      for (let key = 1; key < ukrainianAlphabet.length; key++) {
-        const decryptedText = decryptCiphertext(encryptedText, key);
-        const likelihood = calculateLogLikelihood(decryptedText, frequencies);
-
-        chartData.labels.push(`Key ${key}`);
-        chartData.datasets[0].data.push(likelihood);
-
-        if (likelihood > maxLikelihood) {
-          maxLikelihood = likelihood;
-          bestKey = key;
+  
+      // Обробник події для знаходження ключа
+      document.getElementById("findKeyForm").addEventListener("submit", function (event) {
+        event.preventDefault();
+  
+        // Отримання шифротексту та частот букв української мови
+        const encryptedText = document.getElementById("encryptedText").value.toUpperCase();
+        const frequencies = [
+          0.0834, 0.0153, 0.055, 0.0159, 0.0001, 0.036, 0.0459, 0.0039, 0.0071, 0.021,
+          0.06, 0.0124, 0.0623, 0.0084, 0.04, 0.0393, 0.0302, 0.071, 0.0928, 0.0284,
+          0.0548, 0.0457, 0.0477, 0.0338, 0.0035, 0.0117, 0.0102, 0.0115, 0.0071, 0.0032,
+          0.0183, 0.007, 0.0261
+        ];
+  
+        // Ініціалізація змінних для зберігання максимальної логарифмічної функції правдоподібності та ключа
+        let maxLikelihood = -Infinity;
+        let bestKey = 0;
+  
+        // Оновлення даних для графіку
+        chartData.labels = [];
+        chartData.datasets[0].data = [];
+  
+        // Перебір можливих ключів
+        for (let key = 1; key < ukrainianAlphabet.length; key++) {
+          // Розшифрування тексту та обчислення логарифмічної функції правдоподібності
+          const decryptedText = decryptCiphertext(encryptedText, key);
+          const likelihood = calculateLogLikelihood(decryptedText, frequencies);
+  
+          // Додавання значень до графіку
+          chartData.labels.push(`Key ${key}`);
+          chartData.datasets[0].data.push(likelihood);
+  
+          // Порівняння і збереження максимальної логарифмічної функції правдоподібності та ключа
+          if (likelihood > maxLikelihood) {
+            maxLikelihood = likelihood;
+            bestKey = key;
+          }
         }
-      }
-
-      likelihoodChart.update();
-
-      const decryptedText = decryptCiphertext(encryptedText, bestKey);
-      const formattedDecryptedText = formatDecryptedText(decryptedText);
-      document.getElementById("decryptedText").textContent = formattedDecryptedText;
-      document.getElementById("foundKey").textContent = `Знайдений ключ: ${bestKey}`;
+  
+        // Оновлення графіку
+        likelihoodChart.update();
+  
+        // Розшифрування тексту за допомогою знайденого ключа
+        const decryptedText = decryptCiphertext(encryptedText, bestKey);
+        // Форматування розшифрованого тексту
+        const formattedDecryptedText = formatDecryptedText(decryptedText);
+        // Виведення результатів
+        document.getElementById("decryptedText").textContent = formattedDecryptedText;
+        document.getElementById("foundKey").textContent = `Знайдений ключ: ${bestKey}`;
+      });
     });
-  });
-</script>
+  </script>
 
 </div>
 </body>

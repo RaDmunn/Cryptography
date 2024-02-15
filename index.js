@@ -1,3 +1,5 @@
+//файл index.js
+
 import express from 'express';
 import bodyParser from 'body-parser';
 import path from 'path';
@@ -13,7 +15,7 @@ app.use(express.static("public"));
 app.get('/', (req, res) => {
   res.render('index.ejs');
 });
-// А, Б, В, Г, Ґ, Д, Е, Є, Ж, З, И, І, Ї, Й, К, Л, М, Н, О, П, Р, С, Т, У, Ф, Х, Ц, Ч, Ш, Щ, ь, Ю, Я
+
 app.get('/findKey', (req, res) => {
   res.render('findKey.ejs');
 });
@@ -102,3 +104,5 @@ app.post('/findKey', (req, res) => {
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
+
+// А, Б, В, Г, Ґ, Д, Е, Є, Ж, З, И, І, Ї, Й, К, Л, М, Н, О, П, Р, С, Т, У, Ф, Х, Ц, Ч, Ш, Щ, Ь, Ю, Я
