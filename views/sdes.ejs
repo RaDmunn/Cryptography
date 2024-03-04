@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>S-DES Algorithm</title>
+</head>
+<body>
+  <h1>S-DES Algorithm</h1>
+  <form action="/sDesDE" method="POST">
+    <label for="text">Text:</label>
+    <input type="text" id="text" name="text" value="a1ac098d98ac4c984da88cc998a88cc8c88d294c984da88d2998ec2dcd1d488d9808cd4cec98ad8c2cac290d982dc9a88d4898c8a98c294c39">
+    <br>
+    <label for="key">Key:</label>
+    <input type="text" id="key" name="key" value="254">
+    <br>
+    <label for="mode">Mode:</label>
+    <select id="mode" name="mode">
+      <option value="encrypt">Encrypt</option>
+      <option value="decrypt">Decrypt</option>
+    </select>
+    <br>
+    <button type="submit">Submit</button>
+  </form>
+  <br>
+</body>
+</html>

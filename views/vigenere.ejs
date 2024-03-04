@@ -1,0 +1,103 @@
+<!-- vigenere.ejs -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles/main.css">
+  <title>Vigenere Decryption</title>
+</head>
+<body>
+
+<div class="container">
+
+  <h1>Vigenere Decryption</h1>
+
+  <nav>
+    <ul>
+      <li><a href="/">Головна</a></li>
+      <li><a href="/caesar">Шифр Цезаря</a></li>
+      <li><a href="/findKey">Знайти ключ</a></li>
+    </ul>
+  </nav>
+
+  <form id="decryptForm">
+    <label for="ciphertext">Enter ciphertext:</label><br>
+    <textarea id="ciphertext" name="ciphertext" rows="4" cols="50"></textarea><br><br>
+    <label for="keyLength">Enter key length:</label>
+    <input type="number" id="keyLength" name="keyLength" min="1" required><br><br>
+    <button type="submit">Decrypt</button>
+  </form>
+
+  <form>
+    <h2>Result:</h2>
+    <p id="key"></p>
+    <p id="plaintext"></p>
+    
+  </form>
+</div>
+<script>
+document.getElementById("decryptForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    const ciphertext = formData.get('ciphertext');
+    const keyLength = formData.get('keyLength');
+    
+    fetch('/decryptVigenere', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            ciphertext: ciphertext,
+            keyLength: keyLength
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById("key").textContent = "Key: " + data.key;
+        document.getElementById("plaintext").textContent = "Plaintext: " + data.plaintext;
+    })
+    .catch(error => console.error('Error:', error));
+});
+</script>
+
+  <!-- <form id="decryptForm">
+    <label for="ciphertext">Enter the ciphertext:</label><br>
+    <textarea id="ciphertext" name="ciphertext" rows="4" cols="50"></textarea><br><br>
+    <button type="submit">Decrypt</button>
+  </form>
+
+  <div>
+    <form>
+    <h2>Результат:</h2>
+    <p id="plaintext"></p>
+    </form>
+  </div>
+  
+  <script>
+    document.getElementById('decryptForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    const ciphertext = document.getElementById('ciphertext').value;
+
+    fetch('/decryptVigenere', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ciphertext: ciphertext }),
+    })
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('plaintext').textContent = data.plaintext;
+    })
+    .catch(error => console.error('Error:', error));
+  });
+  </script> -->
+</body>
+</html>

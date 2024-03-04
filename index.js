@@ -1,47 +1,33 @@
 //файл index.js
-
 import express from 'express';
 import bodyParser from 'body-parser';
 import path from 'path';
 import ejs from 'ejs';
+import {caesarCipher, handleKey} from "./functions.js"
 
 const app = express();
 const port = 3000;
 
-app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs')
 app.use(express.static("public"));
+app.use(bodyParser.json());
 
 app.get('/', (req, res) => {
   res.render('index.ejs');
+});
+
+app.get('/caesar', (req, res) => {
+  res.render('caesar.ejs');
 });
 
 app.get('/findKey', (req, res) => {
   res.render('findKey.ejs');
 });
 
-function caesarCipher(text, shift, alphabet) {  
-  return text.split('').map(char => {
-    // Перевіряємо, чи символ є буквою алфавіту (латиниця чи кирилиця)
-    if (/[a-zA-Zа-яА-ЯіІїЇґҐєЄ]/.test(char)) {
-      const isUpperCase = char.toUpperCase() === char; // Визначаємо, чи символ є у верхньому регістрі
-      const index = alphabet.indexOf(char.toLowerCase()); // Знаходимо індекс символу у алфавіті (у нижньому регістрі)
-
-      if (index !== -1) { // Якщо символ знаходиться в алфавіті
-        let newIndex = (index + shift) % alphabet.length; // Знаходимо новий індекс з урахуванням зсуву
-        if (newIndex < 0) {
-          newIndex += alphabet.length; // Обробка випадку від'ємного зсуву
-        }
-        const newChar = alphabet[newIndex]; // Отримуємо новий символ
-        return isUpperCase ? newChar.toUpperCase() : newChar; // Зберігаємо відповідний регістр нового символу
-      } else {
-        return char; // Якщо символ не знайдено в алфавіті, повертаємо без змін
-      }
-    } else {
-      return char; // Повертаємо символ без змін, якщо він не є буквою
-    }
-  }).join('');
-}
+app.get('/vigenere', (req, res) => {
+  res.render('vigenere.ejs');
+});
 
 // Обробник POST-запиту для шифрування тексту
 app.post('/encrypt', (req, res) => {
@@ -51,18 +37,8 @@ app.post('/encrypt', (req, res) => {
   const alphabet = (language === 'ukrainian') ? 'абвгґдеєжзиіїйклмнопрстуфхцчшщьюя' : 'abcdefghijklmnopqrstuvwxyz'; // Вибираємо алфавіт відповідно до обраної мови
   const alphabetLength = alphabet.length; // Отримуємо довжину алфавіту
   
-  // Обробка випадку, коли ключ виходить за межі допустимих значень
-  if (key < -alphabetLength || key > alphabetLength) {
-    key = key % alphabetLength;
-  }
-  if (key < 0) {
-    key = key + alphabetLength;
-  }
+  key = handleKey(key, alphabetLength);
 
-  // Обробка випадку, коли ключ дорівнює нулю
-  if (key === 0) {
-    key = 1;
-  }
   // Шифруємо вхідний текст та повертаємо результат
   const encryptedText = caesarCipher(inputText, key, alphabet);
   res.json({ result: encryptedText });
@@ -76,18 +52,7 @@ app.post('/decrypt', (req, res) => {
   const alphabet = (language === 'ukrainian') ? 'абвгґдеєжзиіїйклмнопрстуфхцчшщьюя' : 'abcdefghijklmnopqrstuvwxyz'; // Вибираємо алфавіт відповідно до обраної мови
   const alphabetLength = alphabet.length; // Отримуємо довжину алфавіту
 
-  // Обробка випадку, коли ключ виходить за межі допустимих значень
-  if (key < -alphabetLength || key > alphabetLength) {
-    key = key % alphabetLength;
-  }
-  if (key < 0) {
-    key = key + alphabetLength;
-  }
-
-  // Обробка випадку, коли ключ дорівнює нулю
-  if (key === 0) {
-    key = 1;
-  } 
+  key = handleKey(key, alphabetLength); 
 
   // Дешифруємо вхідний текст та повертаємо результат
   const decryptedText = caesarCipher(inputText, (alphabetLength - (Math.abs(key) % alphabetLength) + alphabetLength) % alphabetLength, alphabet);
@@ -99,6 +64,75 @@ app.post('/findKey', (req, res) => {
   const decryptedText = findKeyAndDecrypt(encryptedText);
 
   res.json({ result: decryptedText });
+});
+
+app.post('/decryptVigenere', (req, res) => {
+  console.log(req.body.ciphertext);
+  const ciphertext = req.body.ciphertext.toLowerCase().replace(/ /g, '');
+  const ukralphabet = "_абвгґдеєжзиіїйклмнопрстуфхцчшщьюя";
+  const keyLength = parseInt(req.body.keyLength);
+
+  // Initialize array to store potential key characters
+  const keyArray = new Array(keyLength);
+
+  // Split ciphertext into blocks
+  const blocks = [];
+  for (let i = 0; i < keyLength; i++) {
+    let block = "";
+    for (let j = i; j < ciphertext.length; j += keyLength) {
+      block += ciphertext[j];
+    }
+    blocks.push(block);
+  }
+
+  // Find the most frequent letter in each block and add it to the key array
+  for (let i = 0; i < keyLength; i++) {
+    const block = blocks[i];
+    const letterCount = new Array(ukralphabet.length).fill(0);
+
+    // Count occurrences of each letter in the block
+    for (let j = 0; j < block.length; j++) {
+      const letter = block[j];
+      const index = ukralphabet.indexOf(letter);
+      if (index !== -1) {
+        letterCount[index]++;
+      }
+    }
+
+    // Find the most frequent letter
+    let maxCount = 0;
+    let mostFrequentLetter = null;
+    for (let j = 0; j < ukralphabet.length; j++) {
+      if (letterCount[j] > maxCount) {
+        maxCount = letterCount[j];
+        mostFrequentLetter = ukralphabet[j];
+      }
+    }
+
+    // Add the most frequent letter to the key array
+    keyArray[i] = mostFrequentLetter;
+  }
+
+  // Output key array as a string
+  const key = keyArray.join("");
+
+  // Decrypt Vigenere cipher
+  function decryptVigenere(ciphertext, key) {
+    let plaintext = "";
+    for (let i = 0; i < ciphertext.length; i++) {
+      const ciphertextChar = ciphertext[i];
+      const keyChar = key[i % key.length];
+      const ciphertextIndex = ukralphabet.indexOf(ciphertextChar);
+      const keyIndex = ukralphabet.indexOf(keyChar);
+      let plainCharIndex = (ciphertextIndex - keyIndex + ukralphabet.length) % ukralphabet.length;
+      plaintext += ukralphabet[plainCharIndex];
+    }
+    return plaintext;
+  }
+
+  const plaintext = decryptVigenere(ciphertext, key);
+  var modifiedPlainText = plaintext.replace(/_/g, " ");
+  res.json({ key: key, plaintext: modifiedPlainText });
 });
 
 app.listen(port, () => {
