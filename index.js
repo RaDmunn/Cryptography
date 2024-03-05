@@ -3,7 +3,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import path from 'path';
 import ejs from 'ejs';
-import {caesarCipher, handleKey} from "./functions.js"
+import {caesarCipher, handleKey, splitTextIntoBlocks, findMostFrequentLetters, decryptVigenere, findKeyLength, findKeyLengthFriedman} from "./functions.js"
 
 const app = express();
 const port = 3000;
@@ -67,72 +67,58 @@ app.post('/findKey', (req, res) => {
 });
 
 app.post('/decryptVigenere', (req, res) => {
-  console.log(req.body.ciphertext);
+  console.log(1);
+  // Отримуємо шифртекст з тіла запиту, перетворюємо в нижній регістр і видаляємо пробіли
   const ciphertext = req.body.ciphertext.toLowerCase().replace(/ /g, '');
+  // Визначаємо український алфавіт для роботи з текстом
   const ukralphabet = "_абвгґдеєжзиіїйклмнопрстуфхцчшщьюя";
-  const keyLength = parseInt(req.body.keyLength);
+  // Отримуємо метод для знаходження ключа
+  const methodTFK = req.body.methodTFK;
+  console.log(methodTFK);
 
-  // Initialize array to store potential key characters
-  const keyArray = new Array(keyLength);
+  if (methodTFK === 'knownKey') {
+    // Якщо відомий ключ, виконуємо розшифрування з відомим ключем
+    const key = req.body.knownKey;
+    const plaintext = decryptVigenere(ciphertext, key, ukralphabet);
+    const modifiedPlainText = plaintext.replace(/_/g, " ");
+    res.json({ foundKey: key, plaintext: modifiedPlainText });
 
-  // Split ciphertext into blocks
-  const blocks = [];
-  for (let i = 0; i < keyLength; i++) {
-    let block = "";
-    for (let j = i; j < ciphertext.length; j += keyLength) {
-      block += ciphertext[j];
-    }
-    blocks.push(block);
+  } else if (methodTFK === 'knownKeyLength') {
+
+    // Якщо відома довжина ключа, виконуємо розшифрування з використанням методу найчастіше зустрічаючої літери
+    const keyLength = parseInt(req.body.keyLength);
+    const blocks = splitTextIntoBlocks(ciphertext, keyLength);
+    const keyArray = findMostFrequentLetters(blocks, ukralphabet);
+    const key = keyArray.join("");
+    const plaintext = decryptVigenere(ciphertext, key, ukralphabet);
+    const modifiedPlainText = plaintext.replace(/_/g, " ");
+    res.json({ foundKey: key, plaintext: modifiedPlainText });
+
+  } else if (methodTFK === 'unknownKeyKasiski') {
+
+    // Якщо невідомий ключ, але відома можлива довжина ключа, використовуємо метод Касіскі
+    const keyLength = findKeyLength(ciphertext);
+    console.log(typeof keyLength);
+    const blocks = splitTextIntoBlocks(ciphertext, keyLength);
+    const keyArray = findMostFrequentLetters(blocks, ukralphabet);
+    const key = keyArray.join("");
+    const plaintext = decryptVigenere(ciphertext, key, ukralphabet);
+    const modifiedPlainText = plaintext.replace(/_/g, " ");
+    res.json({ foundKey: key, plaintext: modifiedPlainText });
+
+  } else if (methodTFK === 'unknownKeyFriedman') {
+
+    // Якщо невідомий ключ, але відома можлива довжина ключа, використовуємо метод Фрідмана
+    const keyLength = Number(findKeyLengthFriedman(ciphertext)); 
+    console.log(typeof keyLength);
+    const blocks = splitTextIntoBlocks(ciphertext, keyLength);
+    const keyArray = findMostFrequentLetters(blocks, ukralphabet);
+    const key = keyArray.join("");
+    console.log("key: "+key);
+    const plaintext = decryptVigenere(ciphertext, key, ukralphabet);
+    const modifiedPlainText = plaintext.replace(/_/g, " ");
+    res.json({ foundKey: key, plaintext: modifiedPlainText });
   }
-
-  // Find the most frequent letter in each block and add it to the key array
-  for (let i = 0; i < keyLength; i++) {
-    const block = blocks[i];
-    const letterCount = new Array(ukralphabet.length).fill(0);
-
-    // Count occurrences of each letter in the block
-    for (let j = 0; j < block.length; j++) {
-      const letter = block[j];
-      const index = ukralphabet.indexOf(letter);
-      if (index !== -1) {
-        letterCount[index]++;
-      }
-    }
-
-    // Find the most frequent letter
-    let maxCount = 0;
-    let mostFrequentLetter = null;
-    for (let j = 0; j < ukralphabet.length; j++) {
-      if (letterCount[j] > maxCount) {
-        maxCount = letterCount[j];
-        mostFrequentLetter = ukralphabet[j];
-      }
-    }
-
-    // Add the most frequent letter to the key array
-    keyArray[i] = mostFrequentLetter;
-  }
-
-  // Output key array as a string
-  const key = keyArray.join("");
-
-  // Decrypt Vigenere cipher
-  function decryptVigenere(ciphertext, key) {
-    let plaintext = "";
-    for (let i = 0; i < ciphertext.length; i++) {
-      const ciphertextChar = ciphertext[i];
-      const keyChar = key[i % key.length];
-      const ciphertextIndex = ukralphabet.indexOf(ciphertextChar);
-      const keyIndex = ukralphabet.indexOf(keyChar);
-      let plainCharIndex = (ciphertextIndex - keyIndex + ukralphabet.length) % ukralphabet.length;
-      plaintext += ukralphabet[plainCharIndex];
-    }
-    return plaintext;
-  }
-
-  const plaintext = decryptVigenere(ciphertext, key);
-  var modifiedPlainText = plaintext.replace(/_/g, " ");
-  res.json({ key: key, plaintext: modifiedPlainText });
 });
 
 app.listen(port, () => {

@@ -24,45 +24,94 @@
 
   <form id="decryptForm">
     <label for="ciphertext">Enter ciphertext:</label><br>
-    <textarea id="ciphertext" name="ciphertext" rows="4" cols="50"></textarea><br><br>
-    <label for="keyLength">Enter key length:</label>
-    <input type="number" id="keyLength" name="keyLength" min="1" required><br><br>
+      <textarea id="ciphertext" name="ciphertext" rows="4" cols="50"></textarea><br><br>
+    <label for="methodTFK">Select decryption method:</label><br>
+
+    <input type="radio" id="knownKey" name="methodTFK" value="knownKey" onclick="showKnownKeyInput()">
+    <label for="knownKey">Known key</label><br>
+    <div id="knownKeyInput" style="display: none;">
+      <label for="knownKey">Enter known key:</label><br>
+      <input type="text" id="knownKey" name="knownKey"><br><br>
+    </div>
+  
+    <input type="radio" id="knownKeyLength" name="methodTFK" value="knownKeyLength" onclick="showKeyLengthInput()">
+    <label for="knownKeyLength">Unknown key (enter key length):</label><br>
+    <div id="keyLengthInput" style="display: none;">
+      <label for="keyLength">Key length:</label>
+      <input type="number" id="keyLength" name="keyLength" min="1" required><br><br>
+    </div>
+  
+    <input type="radio" id="unknownKeyKasiski" name="methodTFK" value="unknownKeyKasiski" onclick="hideInputs()">
+    <label for="unknownKeyKasiski">Unknown key using Kasiski method</label><br>
+  
+    <input type="radio" id="unknownKeyFriedman" name="methodTFK" value="unknownKeyFriedman" onclick="hideInputs()">
+    <label for="unknownKeyFriedman">Unknown key using Friedman method</label><br><br>
+  
     <button type="submit">Decrypt</button>
   </form>
 
-  <form>
+  <form id="decryptForm">
     <h2>Result:</h2>
-    <p id="key"></p>
+    <p id="foundKey"></p>
+    <br>
     <p id="plaintext"></p>
-    
+    <br>
+    <button type="button" onclick="clearResults()">Clear</button>
   </form>
 </div>
 <script>
+  function clearResults() {
+    document.getElementById("foundKey").textContent = "";
+    document.getElementById("plaintext").textContent = "";
+  }
+</script>
+<script>
+  function showKnownKeyInput() {
+    document.getElementById("knownKeyInput").style.display = "block";
+    document.getElementById("keyLengthInput").style.display = "none";
+  }
+
+  function showKeyLengthInput() {
+    document.getElementById("knownKeyInput").style.display = "none";
+    document.getElementById("keyLengthInput").style.display = "block";
+  }
+
+  function hideInputs() {
+    document.getElementById("knownKeyInput").style.display = "none";
+    document.getElementById("keyLengthInput").style.display = "none";
+  }
+</script>
+<script>
 document.getElementById("decryptForm").addEventListener("submit", function(event) {
-    event.preventDefault();
-    
-    const form = event.target;
-    const formData = new FormData(form);
-    
-    const ciphertext = formData.get('ciphertext');
-    const keyLength = formData.get('keyLength');
-    
-    fetch('/decryptVigenere', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            ciphertext: ciphertext,
-            keyLength: keyLength
-        }),
-    })
-    .then(response => response.json())
-    .then(data => {
-        document.getElementById("key").textContent = "Key: " + data.key;
-        document.getElementById("plaintext").textContent = "Plaintext: " + data.plaintext;
-    })
-    .catch(error => console.error('Error:', error));
+  event.preventDefault();
+  
+  const form = event.target;
+  const formData = new FormData(form);
+  
+  const ciphertext = formData.get('ciphertext');
+  const keyLength = formData.get('keyLength');
+  const knownKey = formData.get('knownKey');
+  const methodTFK = formData.get('methodTFK');
+
+  fetch('/decryptVigenere', {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+          ciphertext: ciphertext,
+          keyLength: keyLength,
+          knownKey: knownKey,
+          methodTFK: methodTFK
+      }),
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log(data.key);
+      document.getElementById("foundKey").textContent = "Key: " + data.foundKey;
+      document.getElementById("plaintext").textContent = "Plaintext: " + data.plaintext;
+  })
+  .catch(error => console.error('Error:', error));
 });
 </script>
 
