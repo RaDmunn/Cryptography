@@ -1,27 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>S-DES Algorithm</title>
-</head>
-<body>
-  <h1>S-DES Algorithm</h1>
-  <form action="/sDesDE" method="POST">
-    <label for="text">Text:</label>
-    <input type="text" id="text" name="text" value="a1ac098d98ac4c984da88cc998a88cc8c88d294c984da88d2998ec2dcd1d488d9808cd4cec98ad8c2cac290d982dc9a88d4898c8a98c294c39">
-    <br>
-    <label for="key">Key:</label>
-    <input type="text" id="key" name="key" value="254">
-    <br>
-    <label for="mode">Mode:</label>
-    <select id="mode" name="mode">
-      <option value="encrypt">Encrypt</option>
-      <option value="decrypt">Decrypt</option>
-    </select>
-    <br>
-    <button type="submit">Submit</button>
-  </form>
-  <br>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/styles/main.css" />
+    <title>Encrypt / Decrypt</title>
+  </head>
+  <body>
+    <h1>Encrypt / Decrypt</h1>
+    
+    <nav>
+      <ul>
+        <li><a href="/">Головна</a></li>
+        <li><a href="/caesar">Шифр Цезаря</a></li>
+        <li><a href="/findKey">Знайти ключ</a></li>
+        <li><a href="/vigenere">Vigenere Decryption</a></li>
+      </ul>
+    </nav>
+
+    <form action="/encryptDecrypt" method="post" form id="SDesPostForm">
+      <label for="message">Message:</label><br />
+      <input type="text" id="message" name="message" /><br />
+      <label for="key">Key:</label><br />
+      <input type="text" id="key" name="key" /><br /><br />
+      <button type="submit">Submit</button>
+    </form>
+    <form>
+      <h2>Results:</h2>
+      <p id="binaryKey"></p>
+      <p id="encryptedBinaryText"></p>
+      <p id="cipherText"></p>
+      <p id="decryptedBinaryText"></p>
+      <p id="decryptedText"></p>
+    </form>
+    <script>
+      // Скрипт для відправки POST-запиту та отримання результату
+      document
+        .getElementById("SDesPostForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+
+          const form = event.target;
+          const formData = new FormData(form);
+
+          const message = formData.get("message");
+          const key = formData.get("key");
+
+          fetch("/encryptDecrypt", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              message: message,
+              key: key,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              console.log(data.key);
+              document.getElementById("binaryKey").textContent =
+                "YOUR BINARY ENCODED KEY: " + data.binaryKey;
+              document.getElementById("encryptedBinaryText").textContent =
+                "ENCRYPTED BINARY TEXT: " + data.encryptedBinaryText;
+              document.getElementById("cipherText").textContent =
+                "CIPHERTEXT: " + data.cipherText;
+              document.getElementById("decryptedBinaryText").textContent =
+                "DECRYPTED BINARY TEXT: " + data.decryptedBinaryText;
+              document.getElementById("decryptedText").textContent =
+                "DECRYPTED TEXT: " + data.decryptedText;
+            })
+            .catch((error) => console.error("Error:", error));
+        });
+    </script>
+  </body>
 </html>
